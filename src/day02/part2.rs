@@ -9,68 +9,85 @@ pub enum Error {
     NumberParseError(#[from] std::num::ParseIntError),
 }
 
-fn count_inc_errors_ext(beg: usize, rest: usize, slice: &[i32]) -> u32 {
-    if rest >= slice.len() {
-        return 0;
-    }
-
-    if (1..=3).contains(&(slice[rest] - slice[beg])) {
-        count_inc_errors(&slice[rest..])
-    } else {
-        count_inc_errors_ext(beg, rest + 1, slice) + 1
-    }
-}
-
-fn count_inc_errors(slice: &[i32]) -> u32 {
-    for i in 1..slice.len() {
-        if (1..=3).contains(&(slice[i] - slice[i - 1])) {
-            continue;
+mod count {
+    fn errors_ext<const B: i32, const E: i32>(beg: usize, rest: usize, slice: &[i32]) -> u32 {
+        if rest >= slice.len() {
+            return 0;
         }
 
-        let val1 = if i == 1 {
-            count_inc_errors(&slice[1..])
+        if (B..=E).contains(&(slice[beg] - slice[rest])) {
+            errors_slice::<B, E>(&slice[rest..])
         } else {
-            count_inc_errors_ext(i - 2, i, slice)
-        };
-        let val2 = count_inc_errors_ext(i - 1, i + 1, slice);
-
-        return u32::min(val1, val2) + 1;
+            errors_ext::<B, E>(beg, rest + 1, slice) + 1
+        }
     }
-    0
+
+    fn errors_slice<const B: i32, const E: i32>(slice: &[i32]) -> u32 {
+        for i in 1..slice.len() {
+            if (B..=E).contains(&(slice[i - 1] - slice[i])) {
+                continue;
+            }
+
+            let val1 = if i == 1 {
+                errors_slice::<B, E>(&slice[1..])
+            } else {
+                errors_ext::<B, E>(i - 2, i, slice)
+            };
+            let val2 = errors_ext::<B, E>(i - 1, i + 1, slice);
+
+            return u32::min(val1, val2) + 1;
+        }
+        0
+    }
+
+    #[allow(unused)]
+    pub fn errors(slice: &[i32]) -> u32 {
+        u32::min(errors_slice::<-3, -1>(slice), errors_slice::<1, 3>(slice))
+    }
 }
 
-fn count_dec_errors_ext(beg: usize, rest: usize, slice: &[i32]) -> u32 {
-    if rest >= slice.len() {
-        return 0;
+mod save {
+    fn check_final<const B: i32, const E: i32>(slice: &[i32]) -> bool {
+        for i in 1..slice.len() {
+            if (B..=E).contains(&(slice[i - 1] - slice[i])) {
+                continue;
+            }
+
+            return false;
+        }
+        true
     }
 
-    if (1..=3).contains(&(slice[beg] - slice[rest])) {
-        count_dec_errors(&slice[rest..])
-    } else {
-        count_dec_errors_ext(beg, rest + 1, slice) + 1
-    }
-}
-
-fn count_dec_errors(slice: &[i32]) -> u32 {
-    for i in 1..slice.len() {
-        if (1..=3).contains(&(slice[i - 1] - slice[i])) {
-            continue;
+    fn check_ext<const B: i32, const E: i32>(beg: usize, rest: usize, slice: &[i32]) -> bool {
+        if rest >= slice.len() {
+            return true;
         }
 
-        let val1 = if i == 1 {
-            count_dec_errors(&slice[1..])
+        if (B..=E).contains(&(slice[beg] - slice[rest])) {
+            check_final::<B, E>(&slice[rest..])
         } else {
-            count_dec_errors_ext(i - 2, i, slice)
-        };
-        let val2 = count_dec_errors_ext(i - 1, i + 1, slice);
-
-        return u32::min(val1, val2) + 1;
+            false
+        }
     }
-    0
-}
 
-fn count_errors(slice: &[i32]) -> u32 {
-    u32::min(count_inc_errors(slice), count_dec_errors(slice))
+    fn check_slice<const B: i32, const E: i32>(slice: &[i32]) -> bool {
+        for i in 1..slice.len() {
+            if (B..=E).contains(&(slice[i - 1] - slice[i])) {
+                continue;
+            }
+
+            return if i == 1 {
+                check_final::<B, E>(&slice[1..])
+            } else {
+                check_ext::<B, E>(i - 2, i, slice)
+            } || check_ext::<B, E>(i - 1, i + 1, slice);
+        }
+        true
+    }
+
+    pub fn check_errors(slice: &[i32]) -> bool {
+        check_slice::<-3, -1>(slice) || check_slice::<1, 3>(slice)
+    }
 }
 
 pub fn process(input: &str) -> Result<String, Error> {
@@ -87,7 +104,7 @@ pub fn process(input: &str) -> Result<String, Error> {
                 return Err(Error::NoReportInLine);
             }
 
-            if count_errors(&entries) <= 1 {
+            if save::check_errors(&entries) {
                 Ok(acc + 1)
             } else {
                 Ok(acc)

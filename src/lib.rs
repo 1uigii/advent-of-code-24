@@ -1,6 +1,6 @@
 mod implement;
 
-implement::day![01, 02, 03, 04];
+implement::day![01, 02, 03, 04, 05];
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -12,6 +12,8 @@ pub enum Error {
     Day03(#[from] day03::Error),
     #[error("day 04 :: {0}")]
     Day04(#[from] day04::Error),
+    #[error("day 05 :: {0}")]
+    Day05(#[from] day05::Error),
 }
 
 pub trait Process {
@@ -45,6 +47,10 @@ pub enum Day {
         #[arg(value_enum)]
         part: Part,
     },
+    Day05 {
+        #[arg(value_enum)]
+        part: Part,
+    },
 }
 
 #[derive(clap::ValueEnum, Debug, Clone, Copy)]
@@ -60,6 +66,7 @@ impl std::fmt::Display for Day {
             Day::Day02 { part } => write!(f, "day 02 :: {part}"),
             Day::Day03 { part } => write!(f, "day 03 :: {part}"),
             Day::Day04 { part } => write!(f, "day 04 :: {part}"),
+            Day::Day05 { part } => write!(f, "day 05 :: {part}"),
         }
     }
 }
@@ -83,5 +90,7 @@ pub fn process_args(args: &Day) -> Result<String, Error> {
         Day::Day03 { part: Part::Part2 } => process(day03::Part2::default()),
         Day::Day04 { part: Part::Part1 } => process(day04::Part1::default()),
         Day::Day04 { part: Part::Part2 } => process(day04::Part2::default()),
+        Day::Day05 { part: Part::Part1 } => process(day05::Part1::default()),
+        Day::Day05 { part: Part::Part2 } => process(day05::Part2::default()),
     }
 }
